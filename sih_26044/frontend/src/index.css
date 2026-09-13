@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-dark: #090d16;
+    --card-bg: rgba(15, 23, 42, 0.85);
+    --border-color: rgba(51, 65, 85, 0.6);
+  }
+
+  body {
+    @apply bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-sky-500 selection:text-white antialiased;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.08) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+      radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+    background-attachment: fixed;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #090d16;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Modern Card Utilities */
+.glass-card {
+  @apply bg-slate-900/80 backdrop-blur-xl border border-slate-800/90 rounded-2xl shadow-xl transition-all duration-300;
+}
+
+.glass-card-hover {
+  @apply glass-card hover:border-slate-700 hover:shadow-2xl hover:shadow-sky-500/5 hover:-translate-y-0.5;
+}
+
+.glass-card-active {
+  @apply bg-slate-900/90 border-sky-500/40 shadow-lg shadow-sky-500/10;
+}
+
+/* Glow Accent Utilities */
+.glow-sky {
+  box-shadow: 0 0 25px -5px rgba(56, 189, 248, 0.25);
+}
+
+.glow-indigo {
+  box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.25);
+}
+
+.glow-emerald {
+  box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25);
+}
+
+.glow-amber {
+  box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.25);
+}
+
+/* Custom Badges */
+.badge-emerald {
+  @apply px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 tracking-wide inline-flex items-center gap-1.5;
+}
+
+.badge-sky {
+  @apply px-3 py-1 rounded-full text-xs font-extrabold bg-sky-500/15 text-sky-300 border border-sky-500/30 tracking-wide inline-flex items-center gap-1.5;
+}
+
+.badge-indigo {
+  @apply px-3 py-1 rounded-full text-xs font-extrabold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 tracking-wide inline-flex items-center gap-1.5;
+}
+
+.badge-amber {
+  @apply px-3 py-1 rounded-full text-xs font-extrabold bg-amber-500/15 text-amber-300 border border-amber-500/30 tracking-wide inline-flex items-center gap-1.5;
+}
+
+.badge-red {
+  @apply px-3 py-1 rounded-full text-xs font-extrabold bg-red-500/15 text-red-400 border border-red-500/30 tracking-wide inline-flex items-center gap-1.5;
+}
+
+/* Shimmer / Pulse Effects */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

@@ -1,0 +1,36 @@
+{
+  "model_version": "screening-v1.0",
+  "trained_at": "2026-09-13T22:53:49.205671",
+  "dataset_size": 1000,
+  "features": [
+    "Skills",
+    "Experience (Years)",
+    "Education",
+    "Certifications",
+    "Job Role",
+    "Projects Count",
+    "Salary Expectation ($)"
+  ],
+  "classifier_metrics": {
+    "accuracy": 0.95,
+    "precision": 0.9691,
+    "recall": 0.9691,
+    "f1_score": 0.9691,
+    "roc_auc": 0.9886,
+    "confusion_matrix": [
+      [
+        33,
+        5
+      ],
+      [
+        5,
+        157
+      ]
+    ]
+  },
+  "regressor_metrics": {
+    "mae": 20.6154,
+    "rmse": 25.2699,
+    "r2_score": -0.1969
+  }
+}
