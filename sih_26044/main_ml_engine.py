@@ -177,16 +177,40 @@ def evaluate_candidate(candidate_form_data: dict[str, Any], file_path: str | Non
     certification_claimed = str(form.get("Certifications", "None")).strip().lower() != "none" or resume_mentions_certificate
     certification_proof = bool(form.get("has_certification_proof", False))
     certificate_declined = bool(form.get("certificate_upload_declined", False))
-    certification_needs_proof = certification_claimed and not certification_proof and not linkedin_valid
-    certification_penalty = -2.5 if certification_needs_proof and certificate_declined else 0.0
+    certification_needs_proof = (
+        certification_claimed
+        and not certification_proof
+        and not linkedin_valid
+        and not certificate_declined
+    )
+    certification_penalty = (
+        -2.5
+        if certification_claimed and not certification_proof and certificate_declined
+        else 0.0
+    )
     coding_score = max(0.0, min(10.0, float(form.get("coding_assessment_score", float(form.get("assessment_score", 0)) / 10.0))))
     coding_bonus = coding_score
     penalties = resume["score_penalty"] + certification_penalty
     bonuses = (github["score"] / 100.0) * 10.0 + (5.0 if linkedin_valid else 0.0) + coding_bonus
     final_score = max(0.0, min(100.0, (raw_score * 0.7) + (semantic["semantic_match_score"] * 0.3) + penalties + bonuses))
+    has_file = bool(file_path and os.path.exists(file_path))
+    has_uploaded_resume = (
+        has_file or bool(form["has_uploaded_resume"])
+        if "has_uploaded_resume" in form
+        else True
+    )
+    if not has_uploaded_resume:
+        final_score = 0.0
+    elif resume["fraud_detected"]:
+        final_score = min(final_score, 25.0)
+    elif ml_decision == 0:
+        final_score = min(final_score, 59.0)
     flow.append({"step": "Score aggregation", "status": "complete", "details": {"penalties": round(penalties, 2), "bonuses": round(bonuses, 2), "final_score": round(final_score, 2)}})
 
-    if resume["fraud_detected"]:
+    if not has_uploaded_resume:
+        status = "Resume Pending Upload"
+        decision = "PENDING_RESUME"
+    elif resume["fraud_detected"]:
         status = "Rejected / Flagged (Hidden Text Fraud Detected)"
         decision = "REJECT"
     elif certification_needs_proof:
@@ -228,8 +252,8 @@ def evaluate_candidate(candidate_form_data: dict[str, Any], file_path: str | Non
     return {
         "candidate_name": form.get("Name", "Applicant"),
         "job_role": form.get("Job Role", "Software Engineer"),
-        "has_uploaded_resume": bool(file_path and os.path.exists(file_path)),
-        "raw_ml_score": round(raw_score, 2),
+        "has_uploaded_resume": has_uploaded_resume,
+        "raw_ml_score": round(raw_score, 2) if has_uploaded_resume else 0.0,
         "final_match_score": round(final_score, 2),
         "decision": decision,
         "status_label": status,
