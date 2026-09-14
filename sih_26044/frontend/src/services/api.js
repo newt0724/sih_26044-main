@@ -26,6 +26,11 @@ export const candidateApi = {
   evaluate: () => api.post('/candidates/evaluate'),
   verifyGithub: (url) => api.post(`/candidates/github-verify?github_url=${encodeURIComponent(url)}`),
   getRecommendations: () => api.get('/candidates/recommendations'),
+  uploadCertificateProof: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/candidates/certificate-proof', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
 };
 
 export const resumeApi = {
@@ -46,7 +51,8 @@ export const jobApi = {
   matchJob: (id) => api.post(`/jobs/${id}/match`),
   applyJob: (id) => api.post(`/jobs/${id}/apply`),
   getRecruiterApplications: () => api.get('/jobs/recruiter/applications'),
-  updateApplicationDecision: (appId, approve) => api.post(`/jobs/applications/${appId}/decision?approve=${approve}`),
+  getMyApplications: () => api.get('/jobs/my-applications'),
+  updateApplicationDecision: (appId, approve, reason) => api.post(`/jobs/applications/${appId}/decision?approve=${approve}&reason=${encodeURIComponent(reason)}`),
 };
 
 export const assessmentApi = {

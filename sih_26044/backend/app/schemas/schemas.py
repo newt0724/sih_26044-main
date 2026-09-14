@@ -18,6 +18,18 @@ class UserRegister(BaseModel):
     branch: Optional[str] = None
     batch_year: Optional[int] = None
     college_email: Optional[str] = None
+    company_name: Optional[str] = None
+    company_registration_number: Optional[str] = None
+    gstin: Optional[str] = None
+    cin: Optional[str] = None
+    company_website: Optional[str] = None
+    company_address: Optional[str] = None
+    govt_department: Optional[str] = None
+    govt_authority_id: Optional[str] = None
+    govt_designation: Optional[str] = None
+    govt_jurisdiction: Optional[str] = None
+    official_govt_email: Optional[str] = None
+    govt_office_address: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -58,6 +70,8 @@ class StudentProfileUpdate(BaseModel):
     salary_expectation: Optional[float] = None
     github_url: Optional[str] = None
     linkedin_url: Optional[str] = None
+    has_certification_proof: Optional[bool] = None
+    certificate_upload_declined: Optional[bool] = None
 
 class StudentProfileOut(BaseModel):
     id: int

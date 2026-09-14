@@ -4,6 +4,7 @@
 # =====================================================================
 
 import os
+from sqlalchemy import inspect, text
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.app.core.config import settings
@@ -15,6 +16,41 @@ from backend.app.api import auth, candidates, resumes, jobs, assessments, teache
 
 # Initialize Database tables
 Base.metadata.create_all(bind=engine)
+
+# Add optional recruiter identity columns to existing SQLite databases without
+# requiring a destructive reset of users, jobs, or student profiles.
+if engine.dialect.name == "sqlite":
+    user_columns = {column["name"] for column in inspect(engine).get_columns("users")}
+    student_profile_columns = {
+        column["name"] for column in inspect(engine).get_columns("student_profiles")
+    }
+    recruiter_columns = {
+        "company_name": "VARCHAR",
+        "company_registration_number": "VARCHAR",
+        "gstin": "VARCHAR",
+        "cin": "VARCHAR",
+        "company_website": "VARCHAR",
+        "company_address": "TEXT",
+        "govt_department": "VARCHAR",
+        "govt_authority_id": "VARCHAR",
+        "govt_designation": "VARCHAR",
+        "govt_jurisdiction": "VARCHAR",
+        "official_govt_email": "VARCHAR",
+        "govt_office_address": "TEXT",
+    }
+    student_profile_columns_to_add = {
+        "has_certification_proof": "BOOLEAN DEFAULT 0",
+        "certificate_upload_declined": "BOOLEAN DEFAULT 0",
+    }
+    with engine.begin() as connection:
+        for column_name, column_type in recruiter_columns.items():
+            if column_name not in user_columns:
+                connection.execute(text(f"ALTER TABLE users ADD COLUMN {column_name} {column_type}"))
+        for column_name, column_type in student_profile_columns_to_add.items():
+            if column_name not in student_profile_columns:
+                connection.execute(text(
+                    f"ALTER TABLE student_profiles ADD COLUMN {column_name} {column_type}"
+                ))
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

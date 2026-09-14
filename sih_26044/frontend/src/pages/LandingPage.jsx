@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { analyticsApi } from '../services/api';
+import { CollegeGate } from '../components/CollegeGate';
 import { 
   GraduationCap, 
   Briefcase, 
   BookOpen, 
   ShieldCheck, 
+  Landmark,
   Sparkles, 
   Cpu, 
   CheckCircle2, 
@@ -26,6 +28,7 @@ export const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
+      <CollegeGate />
       
       {/* HERO SECTION */}
       <section className="relative pt-20 pb-24 overflow-hidden border-b border-slate-800/80">
@@ -34,15 +37,15 @@ export const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
           
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-semibold uppercase tracking-wider mb-8">
-            <Sparkles className="w-3.5 h-3.5" /> Next-Generation ML Placement Platform
+            <Sparkles className="w-3.5 h-3.5" /> ACADEMIA QUEST // CAREER REALM
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-extrabold text-white tracking-tight max-w-4xl mx-auto leading-tight">
-            Bridging <span className="bg-gradient-to-r from-sky-400 via-indigo-400 to-emerald-400 bg-clip-text text-transparent">Academia & Industry</span> with AI Precision
+          <h1 className="game-heading text-4xl sm:text-6xl font-extrabold text-white tracking-tight max-w-4xl mx-auto leading-tight">
+            Choose your <span className="bg-gradient-to-r from-sky-400 via-indigo-400 to-emerald-400 bg-clip-text text-transparent">career champion</span>
           </h1>
 
           <p className="mt-6 text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto font-normal">
-            Real ML models, automated resume anti-fraud inspection, dynamic candidate-job matching, institutional syllabus gap analysis, and placement cell analytics.
+            Five playable roles. One connected world. Use real AI placement tools to level up learners, mentors, employers, placement cells, and public institutions.
           </p>
 
           <div className="mt-10 flex flex-wrap justify-center gap-4">
@@ -94,109 +97,80 @@ export const LandingPage = () => {
       {/* ROLE PORTALS SECTION */}
       <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold text-white">4 Dynamic Platform Roles</h2>
-          <p className="text-slate-400 mt-2">Empowering every stakeholder across the talent ecosystem.</p>
+          <p className="game-font text-[10px] text-sky-400 tracking-widest">SELECT YOUR CHARACTER</p>
+          <h2 className="game-heading mt-4 text-3xl font-bold text-white">Five paths. Infinite progression.</h2>
+          <p className="text-slate-400 mt-3">Every character unlocks a different command center in the Academia Quest.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          
-          {/* Student */}
-          <div className="glass-card-hover p-6 flex flex-col justify-between">
-            <div>
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4">
-                <GraduationCap className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-bold text-white">Students & Candidates</h3>
-              <p className="text-sm text-slate-400 mt-2">
-                Upload resume, get instant ML candidate match score, missing skills guidance, coding assessments, and GitHub profile proof-of-work bonus.
-              </p>
-            </div>
-            <Link to="/register?role=student" className="mt-6 text-sm font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
-              Join as Candidate <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
+        <div className="character-roster">
+          <Link to="/register?role=student" className="character-scene character-scene-student">
+            <div className="scene-platform" /><div className="anime-character"><div className="anime-hair" /><div className="anime-head" /><div className="anime-body" /><div className="anime-arm anime-arm-left" /><div className="anime-arm anime-arm-right" /><div className="anime-leg anime-leg-left" /><div className="anime-leg anime-leg-right" /><div className="anime-prop laptop-prop" /></div>
+            <div className="scene-label"><span className="character-kicker">STUDENT // ANIME HERO</span><strong>Chhatra</strong><span>Laptop runner</span></div>
+          </Link>
 
-          {/* Teacher */}
-          <div className="glass-card-hover p-6 flex flex-col justify-between">
-            <div>
-              <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mb-4">
-                <BookOpen className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-bold text-white">Teachers & Faculty</h3>
-              <p className="text-sm text-slate-400 mt-2">
-                Monitor student skill benchmarks, identify batch weaknesses, and run Institutional Syllabus Gap Analysis against industry standards.
-              </p>
-            </div>
-            <Link to="/register?role=teacher" className="mt-6 text-sm font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1">
-              Teacher Portal <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
+          <Link to="/register?role=teacher" className="character-scene character-scene-teacher">
+            <div className="scene-platform" /><div className="anime-character"><div className="anime-hair" /><div className="anime-head" /><div className="anime-body" /><div className="anime-arm anime-arm-left" /><div className="anime-arm anime-arm-right" /><div className="anime-leg anime-leg-left" /><div className="anime-leg anime-leg-right" /><div className="anime-prop id-card-prop">ID</div></div>
+            <div className="scene-label"><span className="character-kicker">TEACHER // ANIME HERO</span><strong>Guru</strong><span>Faculty mentor</span></div>
+          </Link>
 
-          {/* Recruiter */}
-          <div className="glass-card-hover p-6 flex flex-col justify-between">
-            <div>
-              <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mb-4">
-                <Briefcase className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-bold text-white">Recruiters & Companies</h3>
-              <p className="text-sm text-slate-400 mt-2">
-                Post jobs, automatically rank candidates by ML match score, filter verified profiles, and view anti-fraud resume audit results.
-              </p>
-            </div>
-            <Link to="/register?role=recruiter" className="mt-6 text-sm font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
-              Post Jobs & Hire <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
+          <Link to="/register?role=recruiter" className="character-scene character-scene-recruiter">
+            <div className="scene-platform" /><div className="anime-character"><div className="anime-hair" /><div className="anime-head" /><div className="anime-body" /><div className="anime-arm anime-arm-left" /><div className="anime-arm anime-arm-right" /><div className="anime-leg anime-leg-left" /><div className="anime-leg anime-leg-right" /><div className="anime-prop briefcase-prop" /></div>
+            <div className="scene-label"><span className="character-kicker">RECRUITER // ANIME HERO</span><strong>Karyah</strong><span>Talent hunter</span></div>
+          </Link>
 
-          {/* TPO */}
-          <div className="glass-card-hover p-6 flex flex-col justify-between">
-            <div>
-              <div className="w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center mb-4">
-                <ShieldCheck className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-bold text-white">TPO & Placement Cell</h3>
-              <p className="text-sm text-slate-400 mt-2">
-                Verify student registrations, view employability heatmaps, audit resume fraud risks, and export pre-screened talent lists.
-              </p>
-            </div>
-            <Link to="/register?role=tpo" className="mt-6 text-sm font-semibold text-sky-400 hover:text-sky-300 flex items-center gap-1">
-              TPO Analytics <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
+          <Link to="/register?role=tpo" className="character-scene character-scene-gurukul">
+            <div className="scene-room"><div className="scene-table" /><div className="scene-lamp" /></div><div className="anime-character anime-character-principal"><div className="anime-hair" /><div className="anime-head" /><div className="anime-body" /><div className="anime-arm anime-arm-left" /><div className="anime-arm anime-arm-right" /><div className="anime-leg anime-leg-left" /><div className="anime-leg anime-leg-right" /><div className="anime-prop principal-badge">P</div></div>
+            <div className="scene-label"><span className="character-kicker">TPO // GURUKUL</span><strong>Gurukul</strong><span>Principal · campus leader</span></div>
+          </Link>
 
+          <Link to="/register?role=govt" className="character-scene character-scene-government">
+            <div className="scene-platform" /><div className="anime-character"><div className="anime-hair" /><div className="anime-head" /><div className="anime-body" /><div className="anime-arm anime-arm-left" /><div className="anime-arm anime-arm-right" /><div className="anime-leg anime-leg-left" /><div className="anime-leg anime-leg-right" /><div className="anime-prop tablet-prop" /></div>
+            <div className="scene-label"><span className="character-kicker">GOVERNMENT // ANIME HERO</span><strong>Rajya</strong><span>Realm overseer</span></div>
+          </Link>
         </div>
       </section>
 
-      {/* CORE FEATURES LIST */}
-      <section className="py-16 bg-slate-900/50 border-t border-slate-800">
+      {/* PRODUCTION QUEST BOARD */}
+      <section className="quest-board-section py-20 border-t border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-white">Production Engine Features</h2>
+          <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="game-font text-[10px] text-emerald-400 tracking-widest">LIVE SYSTEMS // XP BOARD</p>
+              <h2 className="game-heading mt-4 text-3xl font-bold text-white">Production quest board</h2>
+              <p className="mt-3 max-w-2xl text-slate-400">Unlock the systems powering every character portal. Three core quests are online and ready for deployment.</p>
+            </div>
+            <div className="quest-rank"><span className="quest-rank-label">REALM STATUS</span><strong>ONLINE</strong><span className="quest-online-dot" /></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="glass-card p-6">
-              <Cpu className="w-8 h-8 text-sky-400 mb-4" />
-              <h4 className="text-lg font-bold text-white">Gradient Boosting ML Pipeline</h4>
+          <div className="quest-grid">
+            <div className="quest-card quest-card-sky">
+              <div className="quest-card-top"><span className="quest-number">01</span><span className="quest-state">ACTIVE QUEST</span></div>
+              <div className="quest-icon"><Cpu className="w-7 h-7" /></div>
+              <h4 className="game-heading mt-5 text-xl font-bold text-white">AI Score Forge</h4>
               <p className="text-sm text-slate-400 mt-2">
                 Trained Gradient Boosting Regressor (0–100 score) & Gradient Boosting Classifier (95% Accuracy, 0.988 AUC) built from candidate datasets.
               </p>
+              <div className="quest-meta"><span>REWARD <b>+500 XP</b></span><span>LVL 04</span></div><div className="quest-progress"><span style={{ width: '88%' }} /></div>
             </div>
 
-            <div className="glass-card p-6">
-              <FileSearch className="w-8 h-8 text-indigo-400 mb-4" />
-              <h4 className="text-lg font-bold text-white">pdfplumber + OCR Anti-Fraud</h4>
+            <div className="quest-card quest-card-indigo">
+              <div className="quest-card-top"><span className="quest-number">02</span><span className="quest-state">GUARDIAN MODE</span></div>
+              <div className="quest-icon"><FileSearch className="w-7 h-7" /></div>
+              <h4 className="game-heading mt-5 text-xl font-bold text-white">Resume Shield</h4>
               <p className="text-sm text-slate-400 mt-2">
                 Detects hidden white-text keyword stuffing, tiny fonts (&lt;3.0pt), scanned image fallback via Tesseract OCR, and regex candidate identity verification.
               </p>
+              <div className="quest-meta"><span>REWARD <b>+350 XP</b></span><span>LVL 03</span></div><div className="quest-progress"><span style={{ width: '76%' }} /></div>
             </div>
 
-            <div className="glass-card p-6">
-              <Code className="w-8 h-8 text-emerald-400 mb-4" />
-              <h4 className="text-lg font-bold text-white">GitHub API Proof-of-Work</h4>
+            <div className="quest-card quest-card-emerald">
+              <div className="quest-card-top"><span className="quest-number">03</span><span className="quest-state">VERIFIED RUN</span></div>
+              <div className="quest-icon"><Code className="w-7 h-7" /></div>
+              <h4 className="game-heading mt-5 text-xl font-bold text-white">GitHub Relic Hunt</h4>
               <p className="text-sm text-slate-400 mt-2">
                 Queries official GitHub REST API to verify public repos, star count, and programming language tech stack for genuine candidate validation.
               </p>
+              <div className="quest-meta"><span>REWARD <b>+250 XP</b></span><span>LVL 02</span></div><div className="quest-progress"><span style={{ width: '64%' }} /></div>
             </div>
           </div>
         </div>

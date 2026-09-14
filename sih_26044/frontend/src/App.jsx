@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { LandingPage } from './pages/LandingPage';
@@ -12,6 +12,43 @@ import { TeacherDashboard } from './pages/TeacherDashboard';
 import { RecruiterDashboard } from './pages/RecruiterDashboard';
 import { TPODashboard } from './pages/TPODashboard';
 import { GovtDashboard } from './pages/GovtDashboard';
+import { ArrowLeft } from 'lucide-react';
+
+const BackButton = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  if (location.pathname === '/') return null;
+
+  return (
+    <button
+      type="button"
+      onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))}
+      className="fixed bottom-5 left-5 z-40 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/90 px-4 py-2.5 text-xs font-extrabold text-slate-200 shadow-xl backdrop-blur-md transition hover:-translate-x-1 hover:border-sky-500/60 hover:text-sky-300"
+    >
+      <ArrowLeft className="h-4 w-4" /> Back
+    </button>
+  );
+};
+
+const PortalCharacterWatermark = ({ role }) => {
+  if (!role) return null;
+
+  return (
+    <div className={`portal-character-watermark portal-character-${role}`} aria-hidden="true">
+      <div className="anime-character anime-character-principal">
+        <div className="anime-hair" /><div className="anime-head" /><div className="anime-body" />
+        <div className="anime-arm anime-arm-left" /><div className="anime-arm anime-arm-right" />
+        <div className="anime-leg anime-leg-left" /><div className="anime-leg anime-leg-right" />
+        {role === 'student' && <div className="anime-prop laptop-prop" />}
+        {role === 'teacher' && <div className="anime-prop id-card-prop">ID</div>}
+        {role === 'recruiter' && <div className="anime-prop briefcase-prop" />}
+        {role === 'tpo' && <div className="anime-prop principal-badge">P</div>}
+        {role === 'govt' && <div className="anime-prop tablet-prop" />}
+      </div>
+    </div>
+  );
+};
 
 const ProtectedRoute = ({ children, roles }) => {
   const { user, loading } = useAuth();
@@ -22,10 +59,14 @@ const ProtectedRoute = ({ children, roles }) => {
 };
 
 export const AppRoutes = () => {
+  const { user } = useAuth();
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <div className={`portal-shell portal-theme-${user?.role || 'neutral'} min-h-screen bg-slate-950 text-slate-100 flex flex-col`}>
       <Navbar />
       <main className="flex-1">
+        <PortalCharacterWatermark role={user?.role} />
+        <BackButton />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />

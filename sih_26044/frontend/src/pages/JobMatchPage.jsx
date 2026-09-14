@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { jobApi } from '../services/api';
-import { Briefcase, Search, CheckCircle2, AlertTriangle, Sparkles, Building2, Clock } from 'lucide-react';
+import { Briefcase, Search, CheckCircle2, AlertTriangle, Sparkles, Building2, Clock, Eye, X } from 'lucide-react';
 
 export const JobMatchPage = () => {
   const [jobs, setJobs] = useState([]);
@@ -8,6 +8,9 @@ export const JobMatchPage = () => {
   const [matchingJobId, setMatchingJobId] = useState(null);
   const [matchResults, setMatchResults] = useState({});
   const [loading, setLoading] = useState(true);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [applyingJobId, setApplyingJobId] = useState(null);
+  const [removingJobId, setRemovingJobId] = useState(null);
 
   useEffect(() => {
     jobApi.listJobs()
@@ -29,11 +32,19 @@ export const JobMatchPage = () => {
   };
 
   const handleApply = async (jobId) => {
+    setApplyingJobId(jobId);
     try {
       await jobApi.applyJob(jobId);
-      alert('Application submitted successfully to recruiter drive!');
+      setSelectedJob(null);
+      setRemovingJobId(jobId);
+      window.setTimeout(() => {
+        setJobs((currentJobs) => currentJobs.filter((job) => job.id !== jobId));
+        setRemovingJobId(null);
+      }, 700);
     } catch (err) {
       alert('Application failed or profile missing.');
+    } finally {
+      setApplyingJobId(null);
     }
   };
 
@@ -74,7 +85,7 @@ export const JobMatchPage = () => {
             const isMatching = matchingJobId === job.id;
 
             return (
-              <div key={job.id} className="glass-card p-6 flex flex-col justify-between relative overflow-hidden">
+              <div key={job.id} className={`glass-card p-6 flex flex-col justify-between relative overflow-hidden transition-all duration-700 ${removingJobId === job.id ? 'animate-pulse scale-105 opacity-0 rotate-2' : ''}`}>
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-extrabold uppercase tracking-wider text-sky-400 flex items-center gap-1">
@@ -96,6 +107,13 @@ export const JobMatchPage = () => {
                   <p className="text-xs text-slate-300 mt-3 line-clamp-2">
                     {job.description || 'Looking for talented engineering candidates with strong core skills.'}
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedJob(job)}
+                    className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-sky-400 hover:text-sky-300"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> View full job description
+                  </button>
 
                   <div className="mt-4">
                     <span className="text-[11px] uppercase font-bold text-slate-500 block mb-1">Required Skills:</span>
@@ -146,15 +164,52 @@ export const JobMatchPage = () => {
                   </button>
 
                   <button
-                    onClick={() => handleApply(job.id)}
+                    onClick={() => setSelectedJob(job)}
                     className="px-4 py-2.5 rounded-xl font-bold text-xs bg-sky-500 hover:bg-sky-400 text-white shadow-md shadow-sky-500/20 transition"
                   >
-                    Apply
+                    Apply to Position
                   </button>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {selectedJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div className="glass-card w-full max-w-2xl border-sky-500/40 p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-wider text-sky-400">{selectedJob.company_name}</p>
+                <h2 className="mt-1 text-2xl font-extrabold text-white">{selectedJob.job_role}</h2>
+                <p className="mt-1 text-xs text-slate-400">{selectedJob.location} • {selectedJob.salary_range}</p>
+              </div>
+              <button type="button" onClick={() => setSelectedJob(null)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white" aria-label="Close job description">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="mt-6 space-y-4">
+              <div>
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Job Description</h3>
+                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-200">{selectedJob.description || 'Looking for talented engineering candidates with strong core skills.'}</p>
+              </div>
+              <div>
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Required Skills</h3>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {selectedJob.required_skills.split(',').map((skill, idx) => (
+                    <span key={idx} className="rounded bg-slate-800 px-2.5 py-1 text-xs text-slate-200">{skill.trim()}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-3 border-t border-slate-800 pt-4">
+              <button type="button" onClick={() => setSelectedJob(null)} className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-bold text-slate-300 hover:bg-slate-700">Review Later</button>
+              <button type="button" onClick={() => handleApply(selectedJob.id)} disabled={applyingJobId === selectedJob.id} className="rounded-lg bg-sky-500 px-5 py-2 text-sm font-extrabold text-white hover:bg-sky-400 disabled:opacity-50">
+                {applyingJobId === selectedJob.id ? 'Submitting...' : 'Apply to This Position'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

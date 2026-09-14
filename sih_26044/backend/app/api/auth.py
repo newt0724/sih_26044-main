@@ -33,7 +33,19 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)):
         email=email_clean,
         hashed_password=hash_password(user_in.password),
         full_name=user_in.full_name.strip(),
-        role=role_clean
+        role=role_clean,
+        company_name=(user_in.company_name or '').strip() or None,
+        company_registration_number=(user_in.company_registration_number or '').strip() or None,
+        gstin=(user_in.gstin or '').strip().upper() or None,
+        cin=(user_in.cin or '').strip().upper() or None,
+        company_website=(user_in.company_website or '').strip() or None,
+        company_address=(user_in.company_address or '').strip() or None,
+        govt_department=(user_in.govt_department or '').strip() or None,
+        govt_authority_id=(user_in.govt_authority_id or '').strip() or None,
+        govt_designation=(user_in.govt_designation or '').strip() or None,
+        govt_jurisdiction=(user_in.govt_jurisdiction or '').strip() or None,
+        official_govt_email=(user_in.official_govt_email or '').strip().lower() or None,
+        govt_office_address=(user_in.govt_office_address or '').strip() or None
     )
     db.add(user)
     db.commit()

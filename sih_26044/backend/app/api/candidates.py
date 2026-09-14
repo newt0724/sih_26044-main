@@ -3,7 +3,9 @@
 # File: backend/app/api/candidates.py
 # =====================================================================
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+import os
+import shutil
 from sqlalchemy.orm import Session
 from typing import Dict, Any
 from backend.app.db.session import get_db
@@ -16,6 +18,31 @@ from resume_processing.github_verification import verify_github_profile
 router = APIRouter(prefix="/candidates", tags=["Candidates"])
 
 from backend.app.core.encryption import encrypt_data, decrypt_data
+
+@router.post("/certificate-proof")
+async def upload_certificate_proof(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    allowed_extensions = {'.pdf', '.png', '.jpg', '.jpeg'}
+    extension = os.path.splitext(file.filename or '')[1].lower()
+    if extension not in allowed_extensions:
+        raise HTTPException(status_code=400, detail="Certificate proof must be PDF, PNG, JPG, or JPEG.")
+
+    profile = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+
+    proof_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'uploads', 'certificates')
+    os.makedirs(proof_dir, exist_ok=True)
+    proof_path = os.path.join(proof_dir, f"student_{current_user.id}_certificate{extension}")
+    with open(proof_path, 'wb') as destination:
+        shutil.copyfileobj(file.file, destination)
+    profile.has_certification_proof = True
+    profile.certificate_upload_declined = False
+    db.commit()
+    return {"uploaded": True, "filename": file.filename}
 
 @router.get("/me", response_model=StudentProfileOut)
 def get_my_profile(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -71,6 +98,8 @@ def evaluate_candidate_profile(
         "GitHub_URL": profile.github_url,
         "LinkedIn_URL": profile.linkedin_url,
         "assessment_score": profile.assessment_score or 0.0,
+        "has_certification_proof": getattr(profile, "has_certification_proof", False),
+        "certificate_upload_declined": getattr(profile, "certificate_upload_declined", False),
         "has_uploaded_resume": profile.has_uploaded_resume
     }
 

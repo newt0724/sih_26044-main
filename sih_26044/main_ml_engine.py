@@ -135,6 +135,7 @@ def recommendations(skills: list[str], role: str) -> list[str]:
         "machine learning engineer": ["Python", "PyTorch", "TensorFlow", "FastAPI", "Docker", "MLOps", "SQL"],
         "ai researcher": ["Python", "PyTorch", "TensorFlow", "Deep Learning", "NLP", "Computer Vision"],
         "data scientist": ["Python", "SQL", "Pandas", "Statistics", "Scikit-Learn", "Tableau"],
+        "software engineer": ["Java", "Python", "SQL", "C++", "Git", "Docker"],
     }
     required = benchmarks.get(role.strip().lower(), ["Python", "SQL", "Git", "Docker"])
     normalized = {skill.lower().strip() for skill in skills}
@@ -172,9 +173,12 @@ def evaluate_candidate(candidate_form_data: dict[str, Any], file_path: str | Non
     linkedin_valid = bool(linkedin_url and re.match(r"https?://(?:www\.)?linkedin\.com/in/[a-zA-Z0-9_-]+$", linkedin_url, re.IGNORECASE))
     flow.append({"step": "External profile verification", "status": "complete", "details": {"github": github, "linkedin_verified": linkedin_valid}})
 
-    certification_claimed = str(form.get("Certifications", "None")).strip().lower() != "none"
+    resume_mentions_certificate = bool(re.search(r"\b(certified|certification|certificate|aws certified|google certified|microsoft certified)\b", resume.get("extracted_text", ""), re.IGNORECASE))
+    certification_claimed = str(form.get("Certifications", "None")).strip().lower() != "none" or resume_mentions_certificate
     certification_proof = bool(form.get("has_certification_proof", False))
-    certification_penalty = -5.0 if certification_claimed and not certification_proof else 0.0
+    certificate_declined = bool(form.get("certificate_upload_declined", False))
+    certification_needs_proof = certification_claimed and not certification_proof and not linkedin_valid
+    certification_penalty = -2.5 if certification_needs_proof and certificate_declined else 0.0
     coding_score = max(0.0, min(10.0, float(form.get("coding_assessment_score", float(form.get("assessment_score", 0)) / 10.0))))
     coding_bonus = coding_score
     penalties = resume["score_penalty"] + certification_penalty
@@ -185,8 +189,8 @@ def evaluate_candidate(candidate_form_data: dict[str, Any], file_path: str | Non
     if resume["fraud_detected"]:
         status = "Rejected / Flagged (Hidden Text Fraud Detected)"
         decision = "REJECT"
-    elif certification_penalty < 0:
-        status = "Shortlisted with Warning (Missing Certification Proof)"
+    elif certification_needs_proof:
+        status = "Action Required (Certification Proof Missing)"
         decision = "SHORTLIST" if ml_decision == 1 else "REJECT"
     elif ml_decision == 1:
         status = "Shortlisted"
@@ -205,9 +209,15 @@ def evaluate_candidate(candidate_form_data: dict[str, Any], file_path: str | Non
     }
     target_skills = role_benchmarks.get(str(form.get("Job Role", "Software Engineer")).strip().lower(), ["Python", "SQL", "Git", "Docker"])
     searchable_resume = f"{form.get('Skills', '')} {resume.get('extracted_text', '')}".lower()
-    matching_skills = [skill for skill in target_skills if re.search(rf"\b{re.escape(skill.lower())}\b", searchable_resume)]
+    skill_catalog = sorted(set(target_skills + [
+        "Python", "Java", "JavaScript", "TypeScript", "C++", "SQL", "Git", "Docker", "Kubernetes",
+        "FastAPI", "React", "TensorFlow", "PyTorch", "Pandas", "NumPy", "Scikit-Learn", "NLP",
+        "Deep Learning", "Machine Learning", "Computer Vision", "Statistics", "AWS", "Azure", "Linux"
+    ]), key=len, reverse=True)
+    detected_resume_skills = [skill for skill in skill_catalog if re.search(rf"(?<![a-z0-9]){re.escape(skill.lower())}(?![a-z0-9])", searchable_resume)]
+    matching_skills = [skill for skill in target_skills if skill in detected_resume_skills]
     missing_skills = [skill for skill in target_skills if skill not in matching_skills]
-    strengths = [f"Strong background in {skill}" for skill in matching_skills]
+    strengths = [f"Resume evidence: {skill}" for skill in detected_resume_skills]
     if float(form.get("Experience (Years)", 0)) >= 3:
         strengths.append(f"{int(float(form['Experience (Years)']))} years of professional experience")
     if int(form.get("Projects Count", 0)) >= 3:
@@ -228,7 +238,7 @@ def evaluate_candidate(candidate_form_data: dict[str, Any], file_path: str | Non
         "verification": {"identity_verified": True, "reason": "Main ML flow completed", "name_match": True},
         "anti_fraud": {"fraud_risk": "high" if resume["fraud_detected"] else "low", "penalty_score": resume["score_penalty"], "signals": resume["hidden_keywords_caught"], "explanation": "Hidden text detected." if resume["fraud_detected"] else "No hidden text detected.", "flags": []},
         "github": {**github, "bonus_score": round((github["score"] / 100.0) * 10.0, 2)},
-        "explainability": {"matching_skills": matching_skills, "missing_skills": missing_skills, "strengths": strengths, "gaps": recommendations(recommendation_skills, form.get("Job Role", "Software Engineer"))},
+        "explainability": {"matching_skills": matching_skills, "detected_resume_skills": detected_resume_skills, "missing_skills": missing_skills, "strengths": strengths, "gaps": recommendations(recommendation_skills, form.get("Job Role", "Software Engineer"))},
         "extracted_text_preview": resume["extracted_text_preview"],
         "ocr_used": resume["ocr_used"],
         "flow": flow,
@@ -236,6 +246,10 @@ def evaluate_candidate(candidate_form_data: dict[str, Any], file_path: str | Non
         "final_ai_match_score": round(final_score, 2),
         "final_decision_status": status,
         "penalties": {"white_text_fraud_penalty": resume["score_penalty"], "missing_cert_proof_penalty": certification_penalty, "total_penalties": penalties},
+        "certificate_verification": {"claimed": certification_claimed, "resume_mention": resume_mentions_certificate, "linkedin_evidence": linkedin_valid, "proof_available": certification_proof, "upload_required": certification_needs_proof, "declined": certificate_declined, "decline_penalty": -2.5},
         "bonuses": {"github_proof_of_work_bonus": round((github["score"] / 100.0) * 10.0, 2), "linkedin_presence_bonus": 5.0 if linkedin_valid else 0.0, "coding_assessment_bonus": coding_bonus, "total_bonuses": round(bonuses, 2)},
         "role_specific_recommendations": recommendations(skill_list, form.get("Job Role", "Software Engineer")),
+        "project_suggestions": [
+            f"Build a production-ready {missing_skill} project with tests, deployment, and a public README." for missing_skill in missing_skills[:3]
+        ] or ["Build an end-to-end portfolio project that combines your strongest skills with a deployed demo."],
     }

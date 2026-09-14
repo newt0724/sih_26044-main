@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
   GraduationCap, 
@@ -11,11 +11,15 @@ import {
   Code, 
   BarChart3,
   ShieldCheck
+  , ChevronDown
 } from 'lucide-react';
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
+  const [portalMenuOpen, setPortalMenuOpen] = useState(false);
+  const roleSelected = ['/login', '/register'].includes(location.pathname) && Boolean(new URLSearchParams(location.search).get('role'));
 
   const handleLogout = () => {
     logout();
@@ -90,15 +94,23 @@ export const Navbar = () => {
               </Link>
             )}
 
-            {/* Direct Switch Role Portals */}
-            <div className="flex items-center space-x-1 pl-2 border-l border-slate-800 text-xs">
-              <span className="text-slate-500 text-[10px] uppercase font-bold pr-1">Portals:</span>
-              <Link to="/login?role=student" onClick={() => logout()} className="px-2 py-1 rounded text-slate-400 hover:text-emerald-400 hover:bg-slate-800">Student</Link>
-              <Link to="/login?role=recruiter" onClick={() => logout()} className="px-2 py-1 rounded text-slate-400 hover:text-indigo-400 hover:bg-slate-800">Recruiter</Link>
-              <Link to="/login?role=teacher" onClick={() => logout()} className="px-2 py-1 rounded text-slate-400 hover:text-amber-400 hover:bg-slate-800">Teacher</Link>
-              <Link to="/login?role=tpo" onClick={() => logout()} className="px-2 py-1 rounded text-slate-400 hover:text-sky-400 hover:bg-slate-800">TPO</Link>
-              <Link to="/login?role=govt" onClick={() => logout()} className="px-2 py-1 rounded text-amber-400 font-bold hover:bg-amber-500/20">Govt</Link>
-            </div>
+            {/* Keep role switching available only before authentication. */}
+            {!user && !roleSelected && (
+              <div className="relative pl-2 border-l border-slate-800 text-xs">
+                <button type="button" onClick={() => setPortalMenuOpen((open) => !open)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 font-bold uppercase tracking-wider text-slate-400 hover:bg-slate-800 hover:text-white" aria-expanded={portalMenuOpen}>
+                  Portals <ChevronDown className={`h-3.5 w-3.5 transition-transform ${portalMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {portalMenuOpen && (
+                  <div className="absolute right-0 top-full z-50 mt-2 w-40 rounded-xl border border-slate-700 bg-slate-900 p-1.5 shadow-2xl">
+                    <Link onClick={() => setPortalMenuOpen(false)} to="/login?role=student" className="block rounded-lg px-3 py-2 text-slate-300 hover:bg-emerald-500/15 hover:text-emerald-300">Student</Link>
+                    <Link onClick={() => setPortalMenuOpen(false)} to="/login?role=recruiter" className="block rounded-lg px-3 py-2 text-slate-300 hover:bg-indigo-500/15 hover:text-indigo-300">Recruiter</Link>
+                    <Link onClick={() => setPortalMenuOpen(false)} to="/login?role=teacher" className="block rounded-lg px-3 py-2 text-slate-300 hover:bg-amber-500/15 hover:text-amber-300">Teacher</Link>
+                    <Link onClick={() => setPortalMenuOpen(false)} to="/login?role=tpo" className="block rounded-lg px-3 py-2 text-slate-300 hover:bg-sky-500/15 hover:text-sky-300">TPO</Link>
+                    <Link onClick={() => setPortalMenuOpen(false)} to="/login?role=govt" className="block rounded-lg px-3 py-2 text-amber-300 hover:bg-amber-500/15">Government</Link>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* User Auth Info / Buttons */}
@@ -122,18 +134,27 @@ export const Navbar = () => {
               </div>
             ) : (
               <div className="flex items-center space-x-2">
-                <Link
-                  to="/login"
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  to="/register"
-                  className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 shadow-md shadow-sky-500/20 transition"
-                >
-                  Get Started
-                </Link>
+                {(location.pathname !== '/' || roleSelected) && (
+                  <Link to="/" className="px-3 py-2 rounded-lg text-sm font-bold text-slate-300 hover:bg-slate-800 hover:text-white">
+                    Home
+                  </Link>
+                )}
+                {!roleSelected && (
+                  <>
+                    <Link
+                      to="/login"
+                      className="px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition"
+                    >
+                      Sign In
+                    </Link>
+                    <Link
+                      to="/register"
+                      className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 shadow-md shadow-sky-500/20 transition"
+                    >
+                      Get Started
+                    </Link>
+                  </>
+                )}
               </div>
             )}
           </div>

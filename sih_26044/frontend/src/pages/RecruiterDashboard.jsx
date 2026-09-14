@@ -24,6 +24,8 @@ export const RecruiterDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [decisionModal, setDecisionModal] = useState(null);
+  const [decisionReason, setDecisionReason] = useState('');
 
   const [newJob, setNewJob] = useState({
     company_name: 'Google',
@@ -80,10 +82,19 @@ export const RecruiterDashboard = () => {
     }
   };
 
-  const handleDecision = async (appId, approve) => {
+  const handleDecision = async () => {
+    if (!decisionModal) {
+      return;
+    }
+    if (!decisionModal.approve && decisionReason.trim().length < 5) {
+      setError('Please provide a decision reason of at least 5 characters.');
+      return;
+    }
     try {
-      const res = await jobApi.updateApplicationDecision(appId, approve);
+      const res = await jobApi.updateApplicationDecision(decisionModal.id, decisionModal.approve, decisionReason.trim());
       setMessage(res.data.message);
+      setDecisionModal(null);
+      setDecisionReason('');
       loadData();
     } catch (err) {
       setError('Failed to update candidate application decision.');
@@ -124,6 +135,35 @@ export const RecruiterDashboard = () => {
         <div className="p-4 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 text-sm flex items-center gap-2 shadow-lg">
           <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
           <span>{error}</span>
+        </div>
+      )}
+
+      {decisionModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="glass-card max-w-lg w-full p-6 border-indigo-500/40">
+            <h3 className="text-lg font-extrabold text-white mb-2">
+              {decisionModal.approve ? 'Explain shortlist decision' : 'Explain rejection decision'}
+            </h3>
+            {decisionModal.approve ? (
+              <p className="text-sm text-slate-300">The candidate will be notified that they were shortlisted.</p>
+            ) : (
+              <>
+                <p className="text-xs text-slate-400 mb-4">A rejection reason is required and will be shown to the student.</p>
+                <textarea
+                  autoFocus
+                  rows="4"
+                  value={decisionReason}
+                  onChange={(e) => setDecisionReason(e.target.value)}
+                  placeholder="What should the candidate improve or why was the application rejected?"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm"
+                />
+              </>
+            )}
+            <div className="flex justify-end gap-3 mt-4">
+              <button type="button" onClick={() => setDecisionModal(null)} className="px-4 py-2 rounded-lg text-sm bg-slate-800 text-slate-300">Cancel</button>
+              <button type="button" onClick={handleDecision} className="px-5 py-2 rounded-lg text-sm font-extrabold bg-indigo-600 text-white">Save Decision</button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -347,6 +387,7 @@ export const RecruiterDashboard = () => {
                       <td className="p-3">
                         <span className="font-bold text-white block">{app.explainability?.candidate_name || 'Candidate'}</span>
                         <span className="text-[11px] text-slate-400 block">Roll No: {app.student?.roll_number || 'NIT2026-CSE01'}</span>
+                        {app.student?.college_verified && <span className="badge-emerald mt-1"><ShieldCheck className="w-3 h-3" /> College Verified</span>}
                       </td>
                       <td className="p-3">
                         <span className="font-semibold text-slate-200 block">{app.explainability?.job_role || 'Software Engineer'}</span>
@@ -385,21 +426,19 @@ export const RecruiterDashboard = () => {
                           {app.status}
                         </span>
                       </td>
-                      <td className="p-3 flex items-center gap-2">
-                        <button
-                          onClick={() => handleDecision(app.id, true)}
-                          className="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 font-bold text-xs transition flex items-center gap-1"
-                          title="Accept / Shortlist Candidate"
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Accept
-                        </button>
-                        <button
-                          onClick={() => handleDecision(app.id, false)}
-                          className="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white font-bold text-xs transition flex items-center gap-1"
-                          title="Reject Candidate"
-                        >
-                          <XCircle className="w-3.5 h-3.5" /> Reject
-                        </button>
+                      <td className="p-3">
+                        {app.status === 'Under Review' ? (
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => { setDecisionModal({ id: app.id, approve: true }); setDecisionReason(''); }} className="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 font-bold text-xs transition flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Shortlist
+                            </button>
+                            <button onClick={() => { setDecisionModal({ id: app.id, approve: false }); setDecisionReason(''); }} className="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white font-bold text-xs transition flex items-center gap-1">
+                              <XCircle className="w-3.5 h-3.5" /> Reject
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-slate-400 max-w-xs">{app.explainability?.decision_reason || 'Decision recorded.'}</div>
+                        )}
                       </td>
                     </tr>
                   );
@@ -453,6 +492,7 @@ export const RecruiterDashboard = () => {
                       <span className="badge-sky">
                         {c.tpo_status}
                       </span>
+                      {c.college_verified && <span className="badge-emerald ml-2"><ShieldCheck className="w-3 h-3" /> College Verified</span>}
                     </td>
                   </tr>
                 ))}

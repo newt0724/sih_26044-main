@@ -16,6 +16,18 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     full_name = Column(String, nullable=False)
     role = Column(String, nullable=False, default="student")  # student, teacher, recruiter, tpo
+    company_name = Column(String, nullable=True)
+    company_registration_number = Column(String, nullable=True)
+    gstin = Column(String, nullable=True)
+    cin = Column(String, nullable=True)
+    company_website = Column(String, nullable=True)
+    company_address = Column(Text, nullable=True)
+    govt_department = Column(String, nullable=True)
+    govt_authority_id = Column(String, nullable=True)
+    govt_designation = Column(String, nullable=True)
+    govt_jurisdiction = Column(String, nullable=True)
+    official_govt_email = Column(String, nullable=True)
+    govt_office_address = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
@@ -49,6 +61,8 @@ class StudentProfile(Base):
     # External verification links
     github_url = Column(String, nullable=True)
     linkedin_url = Column(String, nullable=True)
+    has_certification_proof = Column(Boolean, default=False)
+    certificate_upload_declined = Column(Boolean, default=False)
 
     # Status & TPO Verification Gate
     is_verified_by_tpo = Column(Boolean, default=False)

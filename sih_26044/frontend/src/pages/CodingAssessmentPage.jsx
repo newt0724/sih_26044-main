@@ -42,7 +42,7 @@ export const CodingAssessmentPage = () => {
           <h1 className="text-2xl font-extrabold text-white flex items-center gap-2">
             <Code className="w-6 h-6 text-indigo-400" /> Interactive Coding Assessment
           </h1>
-          <p className="text-slate-400 text-sm mt-1">10 Skill-Matched Questions. Correct answers add bonus score to your candidate match score.</p>
+          <p className="text-slate-400 text-sm mt-1">12 medium-to-hard skill-matched questions. Each correct answer increases your candidate match score.</p>
         </div>
 
         {result && (

@@ -83,6 +83,20 @@ QUESTION_BANK: List[Dict[str, Any]] = [
         "question": "Fill the flag option to create and checkout a new branch in Git:",
         "code_snippet": "git checkout -____ feature/candidate-matching",
         "expected": "b"
+    },
+    {
+        "id": "11",
+        "topic": "FastAPI Dependency Injection",
+        "question": "Complete the parameter annotation so the endpoint receives the authenticated dependency:",
+        "code_snippet": "@app.get('/me')\ndef me(user = ____ (get_current_user)):\n    return user",
+        "expected": "depends"
+    },
+    {
+        "id": "12",
+        "topic": "SQL Window Functions",
+        "question": "Fill the window function keyword to rank candidates within each job:",
+        "code_snippet": "SELECT candidate_id, job_id, score, ____() OVER (PARTITION BY job_id ORDER BY score DESC) AS rank\nFROM matches;",
+        "expected": "rank"
     }
 ]
 
@@ -96,6 +110,7 @@ def get_assessment_questions():
             "topic": q["topic"],
             "question": q["question"],
             "code_snippet": q["code_snippet"]
+            ,"difficulty": "Hard" if int(q["id"]) > 8 else "Medium"
         })
     return questions
 
@@ -131,6 +146,7 @@ def submit_assessment_answers(
     # Record submission in DB
     profile = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()
     if profile:
+        profile.assessment_score = score_pct
         submission = CodeSubmission(
             student_id=profile.id,
             score=score_pct,
@@ -145,5 +161,12 @@ def submit_assessment_answers(
         "correct_count": correct_count,
         "score_percentage": score_pct,
         "coding_bonus_added": f"+{correct_count}%",
+        "difficulty": "Hard",
+        "level_up": "LEVEL 05" if score_pct >= 75 else "LEVEL 04",
+        "project_suggestions": [
+            "Ship a FastAPI candidate tracker with auth, background jobs, tests, and Docker deployment.",
+            "Build a skill-gap recommender using embeddings, explainable scoring, and a live dashboard.",
+            "Create a production analytics pipeline with SQL ranking, caching, CI checks, and monitoring."
+        ],
         "breakdown": detailed_breakdown
     }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { candidateApi, resumeApi, jobApi, assessmentApi } from '../services/api';
+import { candidateApi, resumeApi, jobApi } from '../services/api';
 import { 
   FileText, 
   UploadCloud, 
@@ -8,16 +8,11 @@ import {
   AlertTriangle, 
   Github, 
   Linkedin, 
-  Award, 
-  Briefcase, 
   Brain,
+  BarChart3,
   ShieldCheck,
   RefreshCw,
   Plus,
-  Code,
-  Send,
-  HelpCircle,
-  XCircle,
   FileCheck
 } from 'lucide-react';
 
@@ -55,21 +50,31 @@ const FlowDetails = ({ details }) => {
   );
 };
 
+const skillCatalog = ['Python', 'SQL', 'Machine Learning', 'Deep Learning', 'PyTorch', 'TensorFlow', 'FastAPI', 'Docker', 'Kubernetes', 'System Design', 'Git', 'React'];
+
+const buildSkillGraph = (profile, evaluation) => {
+  const ownedText = [profile?.skills, ...(evaluation?.explainability?.strengths || [])].filter(Boolean).join(' ').toLowerCase();
+  const gapText = (evaluation?.explainability?.gaps || []).filter(Boolean).join(' ').toLowerCase();
+  const ownedSkills = skillCatalog.filter((skill) => ownedText.includes(skill.toLowerCase()));
+  const learnSkills = skillCatalog.filter((skill) => gapText.includes(skill.toLowerCase()) && !ownedSkills.includes(skill));
+  const fallbackOwned = ownedSkills.length ? ownedSkills : ['Python', 'SQL', 'Git'];
+  const fallbackLearn = learnSkills.length ? learnSkills : ['Deep Learning', 'Docker', 'System Design'];
+  return [...new Set([...fallbackOwned, ...fallbackLearn])].slice(0, 7).map((skill) => ({
+    skill,
+    owned: fallbackOwned.includes(skill) ? 84 : 22,
+    learn: fallbackLearn.includes(skill) ? 88 : 28
+  }));
+};
+
 export const StudentDashboard = () => {
   const [profile, setProfile] = useState(null);
   const [evaluation, setEvaluation] = useState(null);
-  const [recommendations, setRecommendations] = useState([]);
+  const [applications, setApplications] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [evaluating, setEvaluating] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-
-  // Assessment Quiz States
-  const [questions, setQuestions] = useState([]);
-  const [quizAnswers, setQuizAnswers] = useState({});
-  const [quizResult, setQuizResult] = useState(null);
-  const [quizSubmitting, setQuizSubmitting] = useState(false);
-  const [loadingQuestions, setLoadingQuestions] = useState(true);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   // Form edit states
   const [isEditing, setIsEditing] = useState(false);
@@ -109,8 +114,8 @@ export const StudentDashboard = () => {
         linkedin_url: pRes.data.linkedin_url || ''
       });
 
-      const rRes = await candidateApi.getRecommendations();
-      setRecommendations(rRes.data || []);
+      const aRes = await jobApi.getMyApplications();
+      setApplications(aRes.data || []);
 
       const evalRes = await candidateApi.evaluate();
       setEvaluation(evalRes.data);
@@ -119,20 +124,8 @@ export const StudentDashboard = () => {
     }
   };
 
-  const loadQuestions = async () => {
-    try {
-      const res = await assessmentApi.getQuestions();
-      setQuestions(res.data || []);
-    } catch (err) {
-      console.error('Failed to load questions:', err);
-    } finally {
-      setLoadingQuestions(false);
-    }
-  };
-
   useEffect(() => {
     loadData();
-    loadQuestions();
   }, []);
 
   const handleProfileSave = async (e) => {
@@ -144,16 +137,6 @@ export const StudentDashboard = () => {
       loadData();
     } catch (err) {
       setError('Failed to update candidate profile.');
-    }
-  };
-
-  const handleApplyPosition = async (jobId, company, role) => {
-    try {
-      await jobApi.applyJob(jobId);
-      setMessage(`Successfully applied for '${role}' at ${company}! Application recorded.`);
-      loadData();
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to submit application.');
     }
   };
 
@@ -190,52 +173,52 @@ export const StudentDashboard = () => {
     }
   };
 
-  const handleQuizSubmit = async (e) => {
-    e.preventDefault();
-    setQuizSubmitting(true);
-    setError('');
-    setMessage('');
+  const updateCertificateDecision = async (proofAvailable, declined, file = null) => {
     try {
-      const res = await assessmentApi.submitAnswers(quizAnswers);
-      setQuizResult(res.data);
-      setMessage(`Coding assessment submitted! You scored ${res.data.score_percentage}% (${res.data.correct_count}/${res.data.total_questions} correct). Bonus score added!`);
-      loadData();
+      if (file) await candidateApi.uploadCertificateProof(file);
+      await candidateApi.updateProfile({ has_certification_proof: proofAvailable, certificate_upload_declined: declined });
+      setMessage(proofAvailable ? 'Certificate proof marked as available. Re-run evaluation to update your score.' : 'Certificate proof declined. A strict -2.5% penalty will be applied on the next evaluation.');
+      await handleRunEvaluation();
     } catch (err) {
-      setError('Failed to submit coding assessment answers.');
-    } finally {
-      setQuizSubmitting(false);
+      setError('Could not update certificate verification status.');
     }
   };
 
   const hasResume = evaluation?.has_uploaded_resume || profile?.has_uploaded_resume;
   const flags = evaluation?.flags || evaluation?.anti_fraud?.flags || [];
+  const skillGraph = buildSkillGraph(profile, evaluation);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className={`student-game-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 ${notificationsOpen ? 'notification-mode-open' : ''}`}>
       
       {/* HEADER SECTION */}
-      <div className="glass-card p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden glow-sky">
+      <div className="glass-card player-header p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden glow-sky">
         <div className="absolute -right-10 -top-10 w-80 h-80 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="space-y-2 z-10">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
-              <Brain className="w-8 h-8 text-sky-400" /> Candidate ML Portal
+            <h1 className="game-heading text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
+              <Brain className="w-8 h-8 text-sky-400" /> Chhatra Command Center
             </h1>
             <span className={profile?.is_verified_by_tpo ? 'badge-emerald' : 'badge-amber'}>
               <ShieldCheck className="w-3.5 h-3.5" />
               TPO: {profile?.tpo_status || 'Pending Verification'}
             </span>
+            {profile?.college_verified && (
+              <span className="badge-emerald"><ShieldCheck className="w-3.5 h-3.5" /> College / Placement Cell Verified</span>
+            )}
             <span className="badge-indigo">
               Roll No: {profile?.roll_number || 'NIT2026-CSE01'}
             </span>
           </div>
+          <p className="game-font text-[9px] text-emerald-400 tracking-widest mb-2">PLAYER HUD // CHHATRA QUESTLINE</p>
           <p className="text-slate-400 text-sm max-w-2xl">
-            Real ML candidate scoring, PDF anti-fraud inspection, interactive coding assessments, and job recommendations.
+            Level up your profile with ML scoring, resume shields, coding quests, GitHub proof-of-work, and live career missions.
           </p>
         </div>
 
         <div className="flex items-center gap-3 z-10">
+          <div className="player-level-hud"><span>LEVEL 04</span><strong>{Math.round(profile?.final_match_score || evaluation?.final_match_score || 0)} XP</strong></div>
           <button
             onClick={handleRunEvaluation}
             disabled={evaluating}
@@ -252,6 +235,27 @@ export const StudentDashboard = () => {
           </button>
         </div>
       </div>
+
+      <button type="button" className="notification-bell" onClick={() => setNotificationsOpen(true)} aria-label={`Open notifications, ${applications.length} notifications`}>
+        <span className="notification-bell-icon">⌕</span><span>NOTIFICATIONS</span><strong>{applications.length}</strong>
+      </button>
+
+      {notificationsOpen && <>
+        <button type="button" className="notification-backdrop" onClick={() => setNotificationsOpen(false)} aria-label="Close notifications" />
+        <section className="notification-sheet" aria-label="Career notifications">
+          <div className="notification-sheet-handle" />
+          <div className="flex items-center justify-between gap-3">
+            <div><span className="game-font text-[8px] text-sky-400 tracking-widest">INCOMING TRANSMISSIONS</span><h3 className="game-heading mt-2 text-xl font-extrabold text-white">Career notifications</h3></div>
+            <button type="button" className="notification-close" onClick={() => setNotificationsOpen(false)}>CLOSE</button>
+          </div>
+          <div className="notification-strip">
+            {applications.length > 0 ? applications.map((application) => {
+              const isFinal = application.status !== 'Under Review';
+              return <article key={application.id} className="notification-card"><span className="notification-card-dot" /><b>{application.job?.job_role || 'Job application'}</b><span className="notification-status">{application.status}</span><p>{isFinal ? (application.explainability?.decision_reason || 'The recruiter recorded a final decision.') : 'Your application is under recruiter review.'}</p></article>;
+            }) : <article className="notification-card"><span className="notification-card-dot" /><b>No transmissions yet</b><p>Your career mission updates will appear here.</p></article>}
+          </div>
+        </section>
+      </>}
 
       {/* NO RESUME UPLOAD WARNING BANNER */}
       {!hasResume && (
@@ -287,6 +291,13 @@ export const StudentDashboard = () => {
         <div className="p-4 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 text-sm flex items-center gap-2 shadow-lg">
           <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
           <span>{error}</span>
+        </div>
+      )}
+
+      {evaluation?.certificate_verification?.upload_required && (
+        <div className="certificate-proof-panel">
+          <div><p className="game-font text-[8px] text-amber-300 tracking-widest">VERIFICATION QUEST</p><h3>Certificate proof required</h3><p>Your resume mentions a certification, but no proof is linked. Upload it to protect your score, or decline and accept a strict -2.5% penalty.</p></div>
+          <div className="certificate-proof-actions"><label className="certificate-upload-button"><input type="file" accept=".pdf,.png,.jpg,.jpeg" onChange={(event) => updateCertificateDecision(true, false, event.target.files?.[0])} /> Upload proof</label><button type="button" onClick={() => updateCertificateDecision(false, true)}>Decline (-2.5%)</button></div>
         </div>
       )}
 
@@ -558,9 +569,26 @@ export const StudentDashboard = () => {
 
       </div>
 
+      <div className="skill-graph-panel quest-panel glass-card p-5 border-emerald-500/30">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="game-font text-[8px] tracking-widest text-emerald-400">SKILL MAP // PLAYER PROGRESSION</p>
+            <h3 className="game-heading mt-2 text-xl font-extrabold text-white flex items-center gap-2"><BarChart3 className="w-5 h-5 text-emerald-400" /> Owned vs Learn Next</h3>
+            <p className="mt-1 text-xs text-slate-400">Your current build compared with the skills that unlock the next career level.</p>
+          </div>
+          <div className="skill-graph-legend"><span><i className="skill-dot skill-dot-owned" /> Owned</span><span><i className="skill-dot skill-dot-learn" /> Learn next</span></div>
+        </div>
+        <div className="skill-pie-stage" role="img" aria-label="Skill pie chart comparing owned skills and skills to learn next">
+          <div className="skill-pie-beam" /><div className="skill-pie-labels">
+            {skillGraph.map(({ skill, owned, learn }, index) => <span className={`skill-float-tag skill-float-${index % 4}`} key={skill}><b>{skill}</b><small>{owned > learn ? 'OWNED' : 'LEARN NEXT'}</small></span>)}
+          </div>
+          <div className="skill-pie-wrap"><div className="skill-pie" style={{ background: `conic-gradient(#34d399 0 ${Math.round((skillGraph.filter(({ owned, learn }) => owned > learn).length / skillGraph.length) * 100)}%, #fbbf24 ${Math.round((skillGraph.filter(({ owned, learn }) => owned > learn).length / skillGraph.length) * 100)}% 100%)` }}><div className="skill-pie-core"><strong>{skillGraph.filter(({ owned, learn }) => owned > learn).length}</strong><span>READY</span></div></div><span className="skill-pie-caption">SKILL CORE // LEVEL UP</span></div>
+        </div>
+      </div>
+
       {/* MODEL EXECUTION FLOW */}
       {evaluation?.flow?.length > 0 && (
-        <div className="glass-card p-6 border-sky-500/30">
+        <div className="glass-card quest-panel p-6 border-sky-500/30">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="text-xl font-extrabold text-white flex items-center gap-2">
@@ -591,99 +619,17 @@ export const StudentDashboard = () => {
         </div>
       )}
 
-      {/* EMBEDDED INTERACTIVE CODING ASSESSMENT MODULE */}
-      <div className="glass-card p-6 border-indigo-500/30 glow-indigo">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
-          <div>
-            <h3 className="text-xl font-extrabold text-white flex items-center gap-2">
-              <Code className="w-6 h-6 text-indigo-400" /> Skill Assessment & Practice Questions
-            </h3>
-            <p className="text-xs text-slate-400 mt-1">
-              Answer skill-matched technical questions right here to boost your ML score bonus (+15% score bonus).
-            </p>
-          </div>
-
-          {quizResult && (
-            <div className="px-4 py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-extrabold text-sm flex items-center gap-2">
-              <Award className="w-4 h-4 text-emerald-400" />
-              Latest Score: {quizResult.score_percentage}% ({quizResult.correct_count}/{quizResult.total_questions} Correct)
-            </div>
-          )}
-        </div>
-
-        {loadingQuestions ? (
-          <div className="text-center py-8 text-slate-500 text-sm">Loading skill practice questions...</div>
-        ) : (
-          <form onSubmit={handleQuizSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {questions.map((q, idx) => {
-                const resItem = quizResult?.breakdown?.find((b) => String(b.question_id) === String(q.id));
-
-                return (
-                  <div key={q.id} className="p-5 rounded-xl bg-slate-950/60 border border-slate-800/90 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="px-2.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 text-xs font-bold border border-indigo-500/30">
-                        Q{idx + 1}. {q.topic}
-                      </span>
-                      
-                      {resItem && (
-                        <span className={`text-xs font-extrabold flex items-center gap-1 ${
-                          resItem.is_correct ? 'text-emerald-400' : 'text-red-400'
-                        }`}>
-                          {resItem.is_correct ? (
-                            <><CheckCircle2 className="w-4 h-4" /> Correct</>
-                          ) : (
-                            <><XCircle className="w-4 h-4" /> Expected: '{resItem.expected}'</>
-                          )}
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-sm font-semibold text-white">{q.question}</p>
-
-                    {q.code_snippet && (
-                      <pre className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-indigo-300 font-mono text-xs overflow-x-auto">
-                        <code>{q.code_snippet}</code>
-                      </pre>
-                    )}
-
-                    <div>
-                      <input
-                        type="text"
-                        required
-                        value={quizAnswers[q.id] || ''}
-                        onChange={(e) => setQuizAnswers({ ...quizAnswers, [q.id]: e.target.value })}
-                        placeholder="Enter answer / code output..."
-                        className="w-full px-3.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 font-mono text-xs focus:outline-none focus:border-indigo-500 transition"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <button
-              type="submit"
-              disabled={quizSubmitting}
-              className="w-full py-3 rounded-xl font-extrabold text-white bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 transition disabled:opacity-50 text-sm"
-            >
-              {quizSubmitting ? 'Evaluating Answers...' : <><Send className="w-4 h-4" /> Submit Coding Assessment Answers</>}
-            </button>
-          </form>
-        )}
-      </div>
-
       {/* EXPLAINABILITY & SKILL GUIDANCE SECTION */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="student-skill-summary grid grid-cols-1 md:grid-cols-2 gap-4">
         
         {/* Strengths */}
-        <div className="glass-card p-6">
-          <h3 className="text-md font-bold text-white flex items-center gap-2 mb-4">
+        <div className="glass-card p-4">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
             <CheckCircle2 className="w-5 h-5 text-emerald-400" /> Detected Profile Strengths
           </h3>
-          <ul className="space-y-2 text-sm text-slate-300">
+          <ul className="space-y-1.5 text-xs text-slate-300">
             {evaluation?.explainability?.strengths?.map((item, idx) => (
-              <li key={idx} className="flex items-center gap-2 bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+              <li key={idx} className="flex items-center gap-2 bg-slate-950/60 p-2 rounded-lg border border-slate-800">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
                 <span>{item}</span>
               </li>
@@ -692,13 +638,13 @@ export const StudentDashboard = () => {
         </div>
 
         {/* Missing Skills / Recommendations */}
-        <div className="glass-card p-6">
-          <h3 className="text-md font-bold text-white flex items-center gap-2 mb-4">
+        <div className="glass-card p-4">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
             <AlertTriangle className="w-5 h-5 text-amber-400" /> Skill Deficits & Guidance
           </h3>
-          <ul className="space-y-2 text-sm text-slate-300">
+          <ul className="space-y-1.5 text-xs text-slate-300">
             {evaluation?.explainability?.gaps?.map((item, idx) => (
-              <li key={idx} className="flex items-center gap-2 bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+              <li key={idx} className="flex items-center gap-2 bg-slate-950/60 p-2 rounded-lg border border-slate-800">
                 <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
                 <span>{item}</span>
               </li>
@@ -708,48 +654,11 @@ export const StudentDashboard = () => {
 
       </div>
 
-      {/* RECOMMENDED JOBS */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xl font-extrabold text-white flex items-center gap-2">
-            <Briefcase className="w-5 h-5 text-sky-400" /> Skill-Matched Open Positions
-          </h3>
-          <span className="text-xs text-slate-400">{recommendations.length} Matching Jobs</span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {recommendations.map((rec, idx) => (
-            <div key={idx} className="glass-card-hover p-5 flex flex-col justify-between space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-extrabold text-sky-400 uppercase tracking-wider">{rec.company_name}</span>
-                  <span className="badge-sky">
-                    {rec.match_score}% Match
-                  </span>
-                </div>
-                <h4 className="text-lg font-bold text-white">{rec.job_role}</h4>
-                <p className="text-xs text-slate-400 mt-1">{rec.location} • {rec.salary_range}</p>
-                
-                <div className="mt-4 space-y-1.5">
-                  <span className="text-[10px] uppercase font-extrabold text-slate-500 block tracking-wider">Matching Skills:</span>
-                  <div className="flex flex-wrap gap-1">
-                    {rec.matching_skills?.map((sk, i) => (
-                      <span key={i} className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] border border-emerald-500/20 font-medium">
-                        {sk}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => handleApplyPosition(rec.job_id, rec.company_name, rec.job_role)}
-                className="w-full py-2.5 rounded-xl font-bold text-xs bg-sky-500 hover:bg-sky-400 text-white shadow-md shadow-sky-500/20 transition flex items-center justify-center gap-1.5"
-              >
-                <Briefcase className="w-3.5 h-3.5" /> Apply to Position
-              </button>
-            </div>
-          ))}
+      <div className="project-quest-panel quest-panel glass-card p-5 border-indigo-500/30">
+        <p className="game-font text-[8px] text-indigo-300 tracking-widest">PROJECT QUEST BOARD</p>
+        <h3 className="game-heading mt-2 text-xl font-extrabold text-white">Build these to raise your acceptance odds</h3>
+        <div className="project-quest-grid">
+          {(evaluation?.project_suggestions || ['Build an end-to-end portfolio project with a deployed demo and clear README.']).map((project, index) => <div className="project-quest" key={`${project}-${index}`}><span>QUEST 0{index + 1}</span><p>{project}</p><small>PORTFOLIO XP +++</small></div>)}
         </div>
       </div>
 

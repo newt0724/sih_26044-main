@@ -1,7 +1,7 @@
 import datetime
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from backend.app.db.session import get_db
 from backend.app.models.models import User, StudentProfile, Job, Application
 from backend.app.schemas.schemas import JobCreate, JobOut, ApplicationOut
@@ -75,6 +75,10 @@ def get_recruiter_applications(
         if rem_days == 0 and app.status == "Under Review":
             app.status = "Expired / Auto-Rejected (20-Day Limit)"
             app.decision = "REJECT"
+            explainability = dict(app.explainability or {})
+            explainability["decision_reason"] = "This application was automatically rejected because the recruiter did not make a decision within the 20-day review period."
+            explainability["decision_by"] = "Platform review timer"
+            app.explainability = explainability
             db.commit()
 
         app.days_remaining = rem_days
@@ -86,23 +90,50 @@ def get_recruiter_applications(
 def update_application_decision(
     app_id: int,
     approve: bool = True,
+    reason: Optional[str] = Query(None, max_length=500),
     current_user: User = Depends(require_role(["recruiter", "tpo"])),
     db: Session = Depends(get_db)
 ):
     app = db.query(Application).filter(Application.id == app_id).first()
     if not app:
         raise HTTPException(status_code=404, detail="Application record not found")
+    if not approve and (not reason or len(reason.strip()) < 5):
+        raise HTTPException(status_code=422, detail="A rejection reason of at least 5 characters is required.")
 
     app.status = "Shortlisted" if approve else "Rejected"
     app.decision = "SHORTLIST" if approve else "REJECT"
+    explainability = dict(app.explainability or {})
+    if not approve:
+        explainability["decision_reason"] = reason.strip()
+    explainability["decision_by"] = current_user.full_name
+    explainability["decision_at"] = datetime.datetime.utcnow().isoformat()
+    app.explainability = explainability
     db.commit()
     db.refresh(app)
     return {
         "app_id": app.id,
         "status": app.status,
         "decision": app.decision,
+        "reason": explainability.get("decision_reason"),
         "message": f"Candidate application decision updated to '{app.status}'."
     }
+
+@router.get("/my-applications", response_model=List[ApplicationOut])
+def get_my_applications(
+    current_user: User = Depends(require_role(["student"])),
+    db: Session = Depends(get_db)
+):
+    profile = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()
+    if not profile:
+        return []
+
+    applications = db.query(Application).filter(
+        Application.student_id == profile.id
+    ).order_by(Application.applied_date.desc()).all()
+    now = datetime.datetime.utcnow()
+    for application in applications:
+        application.days_remaining = max(0, 20 - (now - application.applied_date).days)
+    return applications
 
 @router.get("/{job_id}", response_model=JobOut)
 def get_job_by_id(job_id: int, db: Session = Depends(get_db)):
