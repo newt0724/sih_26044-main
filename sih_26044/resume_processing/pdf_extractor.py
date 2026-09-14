@@ -53,7 +53,7 @@ def extract_pdf_content(file_path: str) -> Dict[str, Any]:
                     extracted_text_pages.append(text)
 
                 # Inspect words with color and size attributes
-                words = page.extract_words(extra_attrs=["non_stroking_color", "size", "render_mode"])
+                words = page.extract_words(extra_attrs=["non_stroking_color", "size"])
                 total_words_count += len(words)
 
                 for word in words:

@@ -96,7 +96,7 @@ export const JobMatchPage = () => {
                         <Clock className="w-3 h-3" /> ⏳ {job.deadline_days || 20}d Window
                       </span>
                       <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-xs font-bold border border-amber-500/20">
-                        ★ {job.company_rating}
+                        ★ {job.company_rating > 0 ? `${job.company_rating} / 5` : 'Pending review'}
                       </span>
                     </div>
                   </div>

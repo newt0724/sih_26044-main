@@ -52,7 +52,8 @@ def verify_candidate_identity(candidate_name: str, extracted_text: str, github_u
     linkedin_match = True
     if linkedin_url and 'linkedin.com/in/' in linkedin_url.lower():
         handle = linkedin_url.strip().rstrip('/').split('linkedin.com/in/')[-1].split('/')[0].lower()
-        if first_name not in handle and (last_name and last_name not in handle):
+        handle_matches_name = first_name in handle or (last_name and last_name in handle)
+        if not handle_matches_name:
             if text_lower and handle not in text_lower:
                 linkedin_match = False
 

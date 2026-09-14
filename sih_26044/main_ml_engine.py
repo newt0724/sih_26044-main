@@ -13,6 +13,7 @@ import requests
 from pdf2image import convert_from_path
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from resume_processing.identity_verification import verify_candidate_identity
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = os.path.join(BASE_DIR, "ml", "models")
@@ -76,7 +77,7 @@ def inspect_resume(file_path: str | None) -> dict[str, Any]:
     result["extracted_text_preview"] = result["extracted_text"][:300]
     result["hidden_keywords_caught"] = hidden_keywords
     result["fraud_detected"] = bool(hidden_keywords)
-    result["score_penalty"] = -20.0 if hidden_keywords else 0.0
+    result["score_penalty"] = -10.0 if hidden_keywords else 0.0
     return result
 
 
@@ -171,7 +172,21 @@ def evaluate_candidate(candidate_form_data: dict[str, Any], file_path: str | Non
     github = analyze_github(form.get("GitHub_URL") or links["github_url"])
     linkedin_url = form.get("LinkedIn_URL") or links["linkedin_url"]
     linkedin_valid = bool(linkedin_url and re.match(r"https?://(?:www\.)?linkedin\.com/in/[a-zA-Z0-9_-]+$", linkedin_url, re.IGNORECASE))
-    flow.append({"step": "External profile verification", "status": "complete", "details": {"github": github, "linkedin_verified": linkedin_valid}})
+    identity = verify_candidate_identity(
+        str(form.get("Name", "")),
+        resume["extracted_text"],
+        form.get("GitHub_URL") or links["github_url"],
+        linkedin_url,
+    )
+    flow.append({
+        "step": "External profile verification",
+        "status": "complete",
+        "details": {
+            "github": github,
+            "linkedin_verified": linkedin_valid and identity["linkedin_match"],
+            "identity_verified": identity["identity_verified"],
+        },
+    })
 
     resume_mentions_certificate = bool(re.search(r"\b(certified|certification|certificate|aws certified|google certified|microsoft certified)\b", resume.get("extracted_text", ""), re.IGNORECASE))
     certification_claimed = str(form.get("Certifications", "None")).strip().lower() != "none" or resume_mentions_certificate
@@ -203,6 +218,8 @@ def evaluate_candidate(candidate_form_data: dict[str, Any], file_path: str | Non
         final_score = 0.0
     elif resume["fraud_detected"]:
         final_score = min(final_score, 25.0)
+    elif not identity["identity_verified"]:
+        final_score = 0.0
     elif ml_decision == 0:
         final_score = min(final_score, 59.0)
     flow.append({"step": "Score aggregation", "status": "complete", "details": {"penalties": round(penalties, 2), "bonuses": round(bonuses, 2), "final_score": round(final_score, 2)}})
@@ -212,6 +229,9 @@ def evaluate_candidate(candidate_form_data: dict[str, Any], file_path: str | Non
         decision = "PENDING_RESUME"
     elif resume["fraud_detected"]:
         status = "Rejected / Flagged (Hidden Text Fraud Detected)"
+        decision = "REJECT"
+    elif not identity["identity_verified"]:
+        status = "Rejected (Candidate identity or external profile mismatch)"
         decision = "REJECT"
     elif certification_needs_proof:
         status = "Action Required (Certification Proof Missing)"
@@ -259,8 +279,8 @@ def evaluate_candidate(candidate_form_data: dict[str, Any], file_path: str | Non
         "status_label": status,
         "model_version": "screening-v1.0-main-ml-part",
         "flags": [],
-        "verification": {"identity_verified": True, "reason": "Main ML flow completed", "name_match": True},
-        "anti_fraud": {"fraud_risk": "high" if resume["fraud_detected"] else "low", "penalty_score": resume["score_penalty"], "signals": resume["hidden_keywords_caught"], "explanation": "Hidden text detected." if resume["fraud_detected"] else "No hidden text detected.", "flags": []},
+        "verification": {"identity_verified": identity["identity_verified"], "reason": identity["verification_reason"], "name_match": identity["name_match"], "github_match": identity["github_match"], "linkedin_match": identity["linkedin_match"]},
+        "anti_fraud": {"fraud_risk": "high" if resume["fraud_detected"] else "low", "penalty_score": resume["score_penalty"], "signals": resume["hidden_keywords_caught"], "explanation": "Hidden text detected." if resume["fraud_detected"] else "No hidden text detected.", "flags": identity["flags"]},
         "github": {**github, "bonus_score": round((github["score"] / 100.0) * 10.0, 2)},
         "explainability": {"matching_skills": matching_skills, "detected_resume_skills": detected_resume_skills, "missing_skills": missing_skills, "strengths": strengths, "gaps": recommendations(recommendation_skills, form.get("Job Role", "Software Engineer"))},
         "extracted_text_preview": resume["extracted_text_preview"],

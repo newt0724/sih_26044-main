@@ -12,7 +12,7 @@ router = APIRouter(prefix="/jobs", tags=["Jobs"])
 
 @router.get("", response_model=List[JobOut])
 def list_jobs(db: Session = Depends(get_db)):
-    jobs = db.query(Job).filter(Job.is_active == True).order_by(Job.created_at.desc()).all()
+    jobs = db.query(Job).filter(Job.is_active == True).order_by(Job.company_rating.desc(), Job.created_at.desc()).all()
     return jobs
 
 @router.post("", response_model=JobOut)
@@ -24,7 +24,7 @@ def create_job(
     job = Job(
         recruiter_id=current_user.id,
         company_name=job_in.company_name,
-        company_rating=job_in.company_rating,
+        company_rating=0.0,
         job_role=job_in.job_role,
         location=job_in.location,
         salary_range=job_in.salary_range,

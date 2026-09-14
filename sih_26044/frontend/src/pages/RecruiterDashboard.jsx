@@ -29,7 +29,6 @@ export const RecruiterDashboard = () => {
 
   const [newJob, setNewJob] = useState({
     company_name: 'Google',
-    company_rating: 4.9,
     job_role: 'Machine Learning Engineer',
     location: 'Bangalore / Remote',
     salary_range: '$60,000 - $90,000',
@@ -58,6 +57,10 @@ export const RecruiterDashboard = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  const authorityRating = jobs.length
+    ? Math.max(...jobs.map((job) => Number(job.company_rating) || 0))
+    : 0;
 
   const handleCreateJob = async (e) => {
     e.preventDefault();
@@ -107,8 +110,11 @@ export const RecruiterDashboard = () => {
       {/* HEADER BAR */}
       <div className="glass-card p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 glow-indigo">
         <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white flex flex-wrap items-center gap-2">
             <Building2 className="w-8 h-8 text-indigo-400" /> Recruiter & Corporate Console
+            <span className="inline-flex items-center rounded-md border border-amber-400/40 bg-amber-400/10 px-2.5 py-1 text-xs font-bold text-amber-300">
+              ★ {authorityRating > 0 ? `${authorityRating} / 5` : 'Pending authority review'}
+            </span>
           </h1>
           <p className="text-slate-400 text-sm">
             Post active job drives, review candidate applications with 20-day review clocks, inspect anti-fraud flags, and manage candidate hiring decisions.
@@ -194,6 +200,9 @@ export const RecruiterDashboard = () => {
 
                   <h4 className="text-lg font-bold text-white">{job.job_role}</h4>
                   <p className="text-xs text-slate-400 mt-1">{job.location} • {job.salary_range}</p>
+                  <p className="mt-2 text-xs font-bold text-amber-400">
+                    ★ {job.company_rating > 0 ? `${job.company_rating} / 5 authority rating` : 'Pending authority rating'}
+                  </p>
                   
                   <div className="mt-3 text-xs text-slate-300">
                     <span className="text-slate-500 font-semibold block text-[10px] uppercase">Required Skills:</span>
@@ -252,16 +261,6 @@ export const RecruiterDashboard = () => {
                     required
                     value={newJob.company_name}
                     onChange={(e) => setNewJob({...newJob, company_name: e.target.value})}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Company Rating ★</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={newJob.company_rating}
-                    onChange={(e) => setNewJob({...newJob, company_rating: parseFloat(e.target.value)})}
                     className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm"
                   />
                 </div>

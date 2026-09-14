@@ -42,6 +42,12 @@ if engine.dialect.name == "sqlite":
         "has_certification_proof": "BOOLEAN DEFAULT 0",
         "certificate_upload_declined": "BOOLEAN DEFAULT 0",
     }
+    job_columns = {column["name"] for column in inspect(engine).get_columns("jobs")}
+    job_columns_to_add = {
+        "company_rating_reason": "TEXT",
+        "company_rating_updated_by": "INTEGER",
+        "company_rating_updated_at": "DATETIME",
+    }
     with engine.begin() as connection:
         for column_name, column_type in recruiter_columns.items():
             if column_name not in user_columns:
@@ -50,6 +56,11 @@ if engine.dialect.name == "sqlite":
             if column_name not in student_profile_columns:
                 connection.execute(text(
                     f"ALTER TABLE student_profiles ADD COLUMN {column_name} {column_type}"
+                ))
+        for column_name, column_type in job_columns_to_add.items():
+            if column_name not in job_columns:
+                connection.execute(text(
+                    f"ALTER TABLE jobs ADD COLUMN {column_name} {column_type}"
                 ))
 
 app = FastAPI(

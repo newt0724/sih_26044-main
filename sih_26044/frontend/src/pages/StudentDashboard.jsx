@@ -53,16 +53,18 @@ const FlowDetails = ({ details }) => {
 const skillCatalog = ['Python', 'SQL', 'Machine Learning', 'Deep Learning', 'PyTorch', 'TensorFlow', 'FastAPI', 'Docker', 'Kubernetes', 'System Design', 'Git', 'React'];
 
 const buildSkillGraph = (profile, evaluation) => {
-  const ownedText = [profile?.skills, ...(evaluation?.explainability?.strengths || [])].filter(Boolean).join(' ').toLowerCase();
-  const gapText = (evaluation?.explainability?.gaps || []).filter(Boolean).join(' ').toLowerCase();
+  const profileSkills = String(profile?.skills || '').toLowerCase();
+  const strengths = (evaluation?.explainability?.strengths || []).filter(Boolean).join(' ').toLowerCase();
+  const gaps = (evaluation?.explainability?.gaps || []).filter(Boolean).join(' ').toLowerCase();
+  const ownedText = [profileSkills, strengths].filter(Boolean).join(' ');
   const ownedSkills = skillCatalog.filter((skill) => ownedText.includes(skill.toLowerCase()));
-  const learnSkills = skillCatalog.filter((skill) => gapText.includes(skill.toLowerCase()) && !ownedSkills.includes(skill));
+  const learnSkills = skillCatalog.filter((skill) => gaps.includes(skill.toLowerCase()) && !ownedSkills.includes(skill));
   const fallbackOwned = ownedSkills.length ? ownedSkills : ['Python', 'SQL', 'Git'];
   const fallbackLearn = learnSkills.length ? learnSkills : ['Deep Learning', 'Docker', 'System Design'];
   return [...new Set([...fallbackOwned, ...fallbackLearn])].slice(0, 7).map((skill) => ({
     skill,
-    owned: fallbackOwned.includes(skill) ? 84 : 22,
-    learn: fallbackLearn.includes(skill) ? 88 : 28
+    owned: Math.min(100, (profileSkills.includes(skill.toLowerCase()) ? 60 : 0) + (strengths.includes(skill.toLowerCase()) ? 40 : 0)),
+    learn: Math.min(100, (gaps.includes(skill.toLowerCase()) ? 70 : 0) + (!ownedText.includes(skill.toLowerCase()) ? 30 : 0))
   }));
 };
 
@@ -75,6 +77,7 @@ export const StudentDashboard = () => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationsViewed, setNotificationsViewed] = useState(false);
 
   // Form edit states
   const [isEditing, setIsEditing] = useState(false);
@@ -236,8 +239,17 @@ export const StudentDashboard = () => {
         </div>
       </div>
 
-      <button type="button" className="notification-bell" onClick={() => setNotificationsOpen(true)} aria-label={`Open notifications, ${applications.length} notifications`}>
-        <span className="notification-bell-icon">⌕</span><span>NOTIFICATIONS</span><strong>{applications.length}</strong>
+      <button
+        type="button"
+        className="notification-bell"
+        onClick={() => {
+          setNotificationsViewed(true);
+          setNotificationsOpen(true);
+        }}
+        aria-label={applications.length && !notificationsViewed ? `Open notifications, ${applications.length} notifications` : 'Open notifications'}
+      >
+        <span className="notification-bell-icon">⌕</span><span>NOTIFICATIONS</span>
+        {applications.length > 0 && !notificationsViewed && <strong>{applications.length}</strong>}
       </button>
 
       {notificationsOpen && <>
@@ -561,9 +573,18 @@ export const StudentDashboard = () => {
             )}
           </div>
 
-          <div className="text-xs text-slate-400 border-t border-slate-800 pt-3 flex justify-between">
-            <span>Identity Verified:</span>
-            <span className="text-white font-extrabold">{evaluation?.verification?.identity_verified ? 'Yes' : 'Pending'}</span>
+          <div className="text-xs text-slate-400 border-t border-slate-800 pt-3 space-y-2">
+            <div className="flex justify-between gap-3">
+              <span>Identity Verified:</span>
+              <span className={`font-extrabold ${evaluation?.verification?.identity_verified ? 'text-emerald-400' : 'text-red-400'}`}>
+                {evaluation ? (evaluation.verification?.identity_verified ? 'Yes' : 'Mismatch') : 'Pending'}
+              </span>
+            </div>
+            {evaluation?.verification?.reason && !evaluation.verification.identity_verified && (
+              <p className="text-[11px] leading-relaxed text-amber-300">
+                {evaluation.verification.reason}
+              </p>
+            )}
           </div>
         </div>
 
@@ -580,7 +601,7 @@ export const StudentDashboard = () => {
         </div>
         <div className="skill-pie-stage" role="img" aria-label="Skill pie chart comparing owned skills and skills to learn next">
           <div className="skill-pie-beam" /><div className="skill-pie-labels">
-            {skillGraph.map(({ skill, owned, learn }, index) => <span className={`skill-float-tag skill-float-${index % 4}`} key={skill}><b>{skill}</b><small>{owned > learn ? 'OWNED' : 'LEARN NEXT'}</small></span>)}
+            {skillGraph.map(({ skill, owned, learn }, index) => <span className={`skill-float-tag skill-float-${index % 4}`} key={skill}><b>{skill}</b><small>{owned > learn ? `OWNED ${owned}%` : `LEARN NEXT ${learn}%`}</small></span>)}
           </div>
           <div className="skill-pie-wrap"><div className="skill-pie" style={{ background: `conic-gradient(#34d399 0 ${Math.round((skillGraph.filter(({ owned, learn }) => owned > learn).length / skillGraph.length) * 100)}%, #fbbf24 ${Math.round((skillGraph.filter(({ owned, learn }) => owned > learn).length / skillGraph.length) * 100)}% 100%)` }}><div className="skill-pie-core"><strong>{skillGraph.filter(({ owned, learn }) => owned > learn).length}</strong><span>READY</span></div></div><span className="skill-pie-caption">SKILL CORE // LEVEL UP</span></div>
         </div>

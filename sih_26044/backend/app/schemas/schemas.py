@@ -3,7 +3,7 @@
 # File: backend/app/schemas/schemas.py
 # =====================================================================
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -106,7 +106,7 @@ class StudentProfileOut(BaseModel):
 # --- Job Schemas ---
 class JobCreate(BaseModel):
     company_name: str
-    company_rating: float = 4.5
+    company_rating: float = Field(default=0.0, ge=0.0, le=5.0)
     job_role: str
     location: str
     salary_range: str
@@ -115,11 +115,19 @@ class JobCreate(BaseModel):
     description: Optional[str] = None
     deadline_days: Optional[int] = 20
 
+class CompanyRatingUpdate(BaseModel):
+    recruiter_id: int
+    rating: float = Field(ge=0.0, le=5.0)
+    reason: str = Field(min_length=10, max_length=500)
+
 class JobOut(BaseModel):
     id: int
     recruiter_id: int
     company_name: str
     company_rating: float
+    company_rating_reason: Optional[str] = None
+    company_rating_updated_by: Optional[int] = None
+    company_rating_updated_at: Optional[datetime] = None
     job_role: str
     location: str
     salary_range: str

@@ -6,15 +6,41 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
+import datetime
 import csv
 import io
 from backend.app.db.session import get_db
 from backend.app.models.models import User, StudentProfile, Application, Job, Resume, CollegeRoster, CollegeAccreditation
-from backend.app.schemas.schemas import CollegeRegistrationRequest, CollegeAccreditationOut, StudentRosterUploadResponse
+from backend.app.schemas.schemas import CollegeRegistrationRequest, CollegeAccreditationOut, StudentRosterUploadResponse, CompanyRatingUpdate
 from backend.app.api.deps import require_role
 from backend.app.services.college_verification import verify_college_accreditation
 
 router = APIRouter(prefix="/tpo", tags=["TPO Placement Cell"])
+
+@router.post("/company-rating")
+def update_company_rating(
+    rating_update: CompanyRatingUpdate,
+    current_user: User = Depends(require_role(["tpo", "govt"])),
+    db: Session = Depends(get_db)
+):
+    jobs = db.query(Job).filter(Job.recruiter_id == rating_update.recruiter_id).all()
+    if not jobs:
+        raise HTTPException(status_code=404, detail="Recruiter company not found")
+
+    updated_at = datetime.datetime.utcnow()
+    for job in jobs:
+        job.company_rating = rating_update.rating
+        job.company_rating_reason = rating_update.reason.strip()
+        job.company_rating_updated_by = current_user.id
+        job.company_rating_updated_at = updated_at
+    db.commit()
+    return {
+        "recruiter_id": rating_update.recruiter_id,
+        "rating": rating_update.rating,
+        "jobs_updated": len(jobs),
+        "updated_by": current_user.full_name,
+        "reason": rating_update.reason.strip(),
+    }
 
 @router.post("/verify-college", response_model=CollegeAccreditationOut)
 def verify_college_registration_endpoint(
